@@ -1,4 +1,3 @@
-// lib/cubits/modelo_cubit.dart
 import 'package:bloc/bloc.dart';
 import 'package:equatable/equatable.dart';
 import '../repository/repository.dart';
@@ -22,30 +21,27 @@ class ModeloCubit extends Cubit<ModeloState> {
   }
 
   Future<void> addModelo(Modelo modelo) async {
-    emit(ModeloLoading());
     try {
       await repository.addModelo(modelo);
-      fetchModelos(); // Refresh the list
+      await fetchModelos(); // Ensure the list is refreshed
     } catch (e) {
       emit(ModeloError(e.toString()));
     }
   }
 
   Future<void> updateModelo(Modelo modelo) async {
-    emit(ModeloLoading());
     try {
       await repository.updateModelo(modelo);
-      fetchModelos(); // Refresh the list
+      await fetchModelos(); // Ensure the list is refreshed
     } catch (e) {
       emit(ModeloError(e.toString()));
     }
   }
 
   Future<void> deleteModelo(int id) async {
-    emit(ModeloLoading());
     try {
       await repository.deleteModelo(id);
-      fetchModelos(); // Refresh the list
+      await fetchModelos(); // Ensure the list is refreshed
     } catch (e) {
       emit(ModeloError(e.toString()));
     }

@@ -13,59 +13,64 @@ class HomeScreen extends StatelessWidget {
         appBar: AppBar(
           title: Text('Modelos CRUD'),
         ),
-        body: ModeloList(),
+        body: BlocConsumer<ModeloCubit, ModeloState>(
+          listener: (context, state) {
+            if (state is ModeloError) {
+              ScaffoldMessenger.of(context).showSnackBar(
+                SnackBar(content: Text('Error: ${state.error}')),
+              );
+            }
+          },
+          builder: (context, state) {
+            if (state is ModeloLoading) {
+              return Center(child: CircularProgressIndicator());
+            } else if (state is ModeloLoaded) {
+              final modelos = state.modelos;
+              return ListView.builder(
+                itemCount: modelos.length,
+                itemBuilder: (context, index) {
+                  final modelo = modelos[index];
+                  return ListTile(
+                    title: Text(modelo.nombre),
+                    subtitle: Text('${modelo.fabricante} - ${modelo.autonomia} km'),
+                    onTap: () async {
+                      final result = await Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (context) => AddOrUpdateScreen(modelo: modelo),
+                        ),
+                      );
+                      if (result == true) {
+                        context.read<ModeloCubit>().fetchModelos();
+                      }
+                    },
+                    trailing: IconButton(
+                      icon: Icon(Icons.delete),
+                      onPressed: () {
+                        context.read<ModeloCubit>().deleteModelo(modelo.id);
+                      },
+                    ),
+                  );
+                },
+              );
+            } else {
+              return Center(child: Text('No data available'));
+            }
+          },
+        ),
         floatingActionButton: FloatingActionButton(
-          onPressed: () {
-            Navigator.push(
+          onPressed: () async {
+            final result = await Navigator.push(
               context,
               MaterialPageRoute(builder: (context) => AddOrUpdateScreen()),
             );
+            if (result == true) {
+              context.read<ModeloCubit>().fetchModelos(); // Refresh the list if the result is true
+            }
           },
           child: Icon(Icons.add),
         ),
       ),
-    );
-  }
-}
-
-class ModeloList extends StatelessWidget {
-  @override
-  Widget build(BuildContext context) {
-    return BlocBuilder<ModeloCubit, ModeloState>(
-      builder: (context, state) {
-        if (state is ModeloLoading) {
-          return Center(child: CircularProgressIndicator());
-        } else if (state is ModeloLoaded) {
-          final modelos = state.modelos;
-          return ListView.builder(
-            itemCount: modelos.length,
-            itemBuilder: (context, index) {
-              final modelo = modelos[index];
-              return ListTile(
-                title: Text(modelo.nombre),
-                subtitle: Text('${modelo.fabricante} - ${modelo.autonomia} km'),
-                onTap: () {
-                  Navigator.push(
-                    context,
-                    MaterialPageRoute(
-                      builder: (context) => AddOrUpdateScreen(modelo: modelo),
-                    ),
-                  );
-                },
-                trailing: IconButton(
-                  icon: Icon(Icons.delete),
-                  onPressed: () {
-                    context.read<ModeloCubit>().deleteModelo(modelo.id);
-                  },
-                ),
-              );
-            },
-          );
-        } else if (state is ModeloError) {
-          return Center(child: Text('Error: ${state.error}'));
-        }
-        return Center(child: Text('No data available'));
-      },
     );
   }
 }
@@ -111,23 +116,24 @@ class AddOrUpdateScreen extends StatelessWidget {
             SizedBox(height: 20),
             ElevatedButton(
               onPressed: () {
-                final modelo = Modelo(
-                  id: this.modelo?.id ?? 0,
+                final newModelo = Modelo(
+                  id: modelo?.id ?? 0,
                   nombre: nombreController.text,
                   fabricante: fabricanteController.text,
                   autonomia: double.parse(autonomiaController.text),
                   velocidadMaxima: double.parse(velocidadMaximaController.text),
                 );
 
-                if (this.modelo == null) {
-                  context.read<ModeloCubit>().addModelo(modelo);
+                if (modelo == null) {
+                  context.read<ModeloCubit>().addModelo(newModelo);
                 } else {
-                  context.read<ModeloCubit>().updateModelo(modelo);
+                  context.read<ModeloCubit>().updateModelo(newModelo);
                 }
 
-                Navigator.pop(context);
+                //reload the list
+                Navigator.pop(context, true);
               },
-              child: Text(this.modelo == null ? 'Add' : 'Update'),
+              child: Text(modelo == null ? 'Add' : 'Update'),
             ),
           ],
         ),
